@@ -7,7 +7,6 @@ use loopers_common::gui_channel::GuiSender;
 use loopers_common::Host;
 use loopers_common::midi::MidiEvent;
 use loopers_engine::Engine;
-use loopers_gui::Gui;
 
 enum ClientChange {
     AddPort(u32),
@@ -149,8 +148,7 @@ impl jack::NotificationHandler for Notifications {
     }
 }
 
-pub fn jack_main(gui: Option<Gui>,
-                 gui_sender: GuiSender,
+pub fn jack_main(gui_sender: GuiSender,
                  gui_to_engine_receiver: Receiver<Command>,
                  beat_normal: Vec<f32>,
                  beat_emphasis: Vec<f32>,
@@ -310,17 +308,15 @@ pub fn jack_main(gui: Option<Gui>,
     });
 
     // start the gui
-    if let Some(gui) = gui {
-        gui.start();
-    } else {
-        loop {
-            let mut user_input = String::new();
-            io::stdin().read_line(&mut user_input).ok();
-            if user_input == "q" {
-                break;
-            }
+
+    loop {
+        let mut user_input = String::new();
+        io::stdin().read_line(&mut user_input).ok();
+        if user_input == "q" {
+            break;
         }
     }
+    
 
     if let Err(_) = port_change_tx.send(ClientChange::Shutdown) {
         warn!("Failed to shutdown worker thread");

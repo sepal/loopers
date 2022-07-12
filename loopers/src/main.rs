@@ -18,7 +18,6 @@ mod looper_coreaudio;
 use clap::{App, Arg};
 use crossbeam_channel::bounded;
 use loopers_common::gui_channel::GuiSender;
-use loopers_gui::Gui;
 use std::io;
 use std::process::exit;
 use crate::loopers_jack::jack_main;
@@ -83,11 +82,6 @@ fn main() {
                 .help("Automatically restores the last saved session"),
         )
         .arg(
-            Arg::with_name("no-gui")
-                .long("no-gui")
-                .help("Launches in headless mode (without the gui)"),
-        )
-        .arg(
             Arg::with_name("driver")
                 .long("driver")
                 .takes_value(true)
@@ -108,15 +102,7 @@ fn main() {
 
     let (gui_to_engine_sender, gui_to_engine_receiver) = bounded(100);
 
-    let (gui, gui_sender) = if !matches.is_present("no-gui") {
-        let (sender, receiver) = GuiSender::new();
-        (
-            Some(Gui::new(receiver, gui_to_engine_sender, sender.clone())),
-            sender,
-        )
-    } else {
-        (None, GuiSender::disconnected())
-    };
+    let gui_sender = GuiSender::disconnected();
 
     // read wav files
     let reader = hound::WavReader::new(SINE_NORMAL).unwrap();
@@ -136,7 +122,7 @@ fn main() {
     match matches.value_of("driver")
         .unwrap_or(DEFAULT_DRIVER) {
         "jack" => {
-            jack_main(gui, gui_sender, gui_to_engine_receiver, beat_normal, beat_emphasis, restore);
+            jack_main(gui_sender, gui_to_engine_receiver, beat_normal, beat_emphasis, restore);
         }
         "coreaudio" => {
             if cfg!(target_os = "macos") {
